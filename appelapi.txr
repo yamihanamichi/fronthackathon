@@ -5,8 +5,9 @@ try {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      weeks_ahead: Number(weeksAhead),
-      prediction_type: predictionType,
+      start_date: startDate,
+      end_date: endDate,
+      budget: Number(budget),
     }),
   });
 
@@ -19,4 +20,6 @@ try {
 } catch (err) {
   console.error("Erreur requête :", err);
   alert("Impossible de récupérer les données Metabase ❌");
+} finally {
+  setLoading(false);
 }
