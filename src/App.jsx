@@ -5,22 +5,48 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 
 export default function App() {
-  const [url, setUrl] = useState("");
+  const [weeksAhead, setWeeksAhead] = useState(10);
+  const [predictionType, setPredictionType] = useState("emergency");
   const [iframeUrl, setIframeUrl] = useState("");
+  const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
-  // Gérer le mode sombre
+  // Gère le mode sombre
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    if (darkMode) document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
   }, [darkMode]);
 
-  const handleSubmit = (e) => {
+  // Envoi du POST vers le backend
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIframeUrl(url.trim());
+    setLoading(true);
+    setIframeUrl(""); // reset
+    
+// simulation de l'appel api ligne 26 à 47
+try {
+  
+  
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  // 🔹 Simulation de la réponse API
+  const data = {
+    metabase_chart: {
+      iframe_url:
+        "https://metabase.ratioaws.org/public/question/08eb9d70-7ee0-41b8-867a-0a8347e88458",
+      chart_name: "Prédictions Urgences Grippe - Exemple",
+      created_at: new Date().toISOString(),
+    },
+  };
+
+  console.log("Réponse simulée :", data);
+
+  setIframeUrl(data.metabase_chart.iframe_url);
+} catch (err) {
+  console.error("Erreur simulation :", err);
+  alert("Erreur pendant la simulation ❌");
+}
+// fin de simu
   };
 
   return (
@@ -41,31 +67,42 @@ export default function App() {
         </div>
       </header>
 
-      {/* MAIN */}
+      {/* FORMULAIRE */}
       <main className="flex-grow flex flex-col items-center px-4 py-10">
         <Card className="w-full max-w-2xl bg-white dark:bg-gray-800 shadow-md border border-gray-200 dark:border-gray-700 p-6">
           <h2 className="text-xl font-semibold text-center text-gray-800 dark:text-gray-100 mb-6">
-            Visualisation Metabase
+            Lancer une prédiction
           </h2>
 
           <form
             onSubmit={handleSubmit}
-            className="flex flex-col sm:flex-row gap-3 justify-center"
+            className="flex flex-col gap-4 justify-center"
           >
-            <Input
-              type="text"
-              placeholder="Collez ici le lien Metabase..."
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="flex-grow"
-            />
-            <Button type="submit" className="w-full sm:w-auto">
-              Charger
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Input
+                type="number"
+                placeholder="Semaines à prévoir"
+                value={weeksAhead}
+                onChange={(e) => setWeeksAhead(e.target.value)}
+                className="flex-grow"
+              />
+              <select
+                value={predictionType}
+                onChange={(e) => setPredictionType(e.target.value)}
+                className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md px-3 py-2"
+              >
+                <option value="emergency">Urgences</option>
+                <option value="vaccination">Vaccination</option>
+              </select>
+            </div>
+
+            <Button type="submit" disabled={loading}>
+              {loading ? "Chargement..." : "Envoyer la requête"}
             </Button>
           </form>
         </Card>
 
-        {/* Zone IFRAME */}
+        {/* IFRAME */}
         <div className="mt-10 w-full flex justify-center">
           {iframeUrl ? (
             <iframe
@@ -78,9 +115,11 @@ export default function App() {
               className="rounded-lg shadow-lg border border-gray-300 dark:border-gray-600 transition-opacity duration-700 opacity-100"
             ></iframe>
           ) : (
-            <p className="text-gray-500 dark:text-gray-400 italic mt-6 text-center">
-              Aucun dashboard affiché. Collez un lien ci-dessus.
-            </p>
+            !loading && (
+              <p className="text-gray-500 dark:text-gray-400 italic mt-6 text-center">
+                Aucun dashboard affiché.
+              </p>
+            )
           )}
         </div>
       </main>
