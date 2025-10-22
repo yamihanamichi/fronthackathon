@@ -8,7 +8,7 @@ export default function App() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [budget, setBudget] = useState("");
-  const [iframeUrl, setIframeUrl] = useState("");
+  const [charts, setCharts] = useState(null);
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
@@ -18,38 +18,43 @@ export default function App() {
     else document.documentElement.classList.remove("dark");
   }, [darkMode]);
 
-  // Simulation API / à remplacer plus tard par le vrai fetch
+  // Appel API réel vers /predict/campaign
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setIframeUrl("");
+    setCharts(null);
 
     try {
-      // simulation d'un appel API avec délai
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const data = {
-        metabase_chart: {
-          iframe_url:
-            "https://metabase.ratioaws.org/public/question/08eb9d70-7ee0-41b8-867a-0a8347e88458",
-          chart_name: "Prévisions Campagne Vaccinale",
-          created_at: new Date().toISOString(),
+      const response = await fetch('https://api-vaccin-campagne.ratioaws.org/predict/campaign', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      };
-
-      console.log("Requête simulée :", {
-        start_date: startDate,
-        end_date: endDate,
-        budget,
+        body: JSON.stringify({
+          campaign_start_date: startDate,
+          campaign_end_date: endDate,
+          campaign_cost: parseInt(budget)
+        })
       });
-      setIframeUrl(data.metabase_chart.iframe_url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Réponse API :", data);
+
+      if (data.metabase_charts) {
+        setCharts(data.metabase_charts);
+      } else {
+        throw new Error("Données de graphiques manquantes dans la réponse");
+      }
     } catch (err) {
-      alert("Erreur lors de la simulation de la requête ❌");
-      console.error(err);
+      console.error("Erreur API :", err);
+      alert(`Erreur API: ${err.message} ❌`);
     } finally {
       setLoading(false);
     }
-// fin de la simulation
   };
 
   return (
@@ -124,18 +129,38 @@ export default function App() {
           </form>
         </Card>
 
-        {/* IFRAME */}
-        <div className="mt-10 w-full flex justify-center">
-          {iframeUrl ? (
-            <iframe
-              key={iframeUrl}
-              src={iframeUrl}
-              frameBorder="0"
-              width="1000"
-              height="600"
-              allowTransparency
-              className="rounded-lg shadow-lg border border-gray-300 dark:border-gray-600 transition-opacity duration-700 opacity-100"
-            ></iframe>
+        {/* CHARTS */}
+        <div className="mt-10 w-full max-w-6xl">
+          {charts ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {charts.epidemic_chart && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-300 dark:border-gray-600 p-4">
+                  <iframe
+                    key={charts.epidemic_chart.iframe_url}
+                    src={charts.epidemic_chart.iframe_url}
+                    frameBorder="0"
+                    width="100%"
+                    height="500"
+                    allowTransparency
+                    className="rounded-lg"
+                  ></iframe>
+                </div>
+              )}
+              
+              {charts.cost_chart && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-300 dark:border-gray-600 p-4">
+                  <iframe
+                    key={charts.cost_chart.iframe_url}
+                    src={charts.cost_chart.iframe_url}
+                    frameBorder="0"
+                    width="100%"
+                    height="500"
+                    allowTransparency
+                    className="rounded-lg"
+                  ></iframe>
+                </div>
+              )}
+            </div>
           ) : (
             !loading && (
               <p className="text-gray-500 dark:text-gray-400 italic mt-6 text-center">
